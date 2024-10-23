@@ -19,6 +19,7 @@ public:
     void CreateModelDescriptorSetLayout();
     void CreateTimeDescriptorSetLayout();
     void CreateComputeDescriptorSetLayout();
+    void CreateGrassDescriptorSetLayout(); 
 
     void CreateDescriptorPool();
 

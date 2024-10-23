@@ -21,11 +21,6 @@ struct Blade {
     vec4 up;
 };
 
-// TODO: Add bindings to:
-// 1. Store the input blades   ??? store? or read?
-// 2. Write out the culled blades
-// 3. Write the total number of blades remaining
-
 layout(set = 2, binding = 0) readonly buffer InputGrass {
     Blade inputBlades[]; 
 } inputBlades;
