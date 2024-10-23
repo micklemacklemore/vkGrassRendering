@@ -84,5 +84,8 @@ public:
     VkBuffer GetBladesBuffer() const;
     VkBuffer GetCulledBladesBuffer() const;
     VkBuffer GetNumBladesBuffer() const;
+    static constexpr size_t getBladesBufferSize() {
+        return NUM_BLADES * sizeof(Blade);
+    }
     ~Blades();
 };

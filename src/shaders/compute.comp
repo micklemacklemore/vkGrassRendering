@@ -22,9 +22,24 @@ struct Blade {
 };
 
 // TODO: Add bindings to:
-// 1. Store the input blades
+// 1. Store the input blades   ??? store? or read?
 // 2. Write out the culled blades
 // 3. Write the total number of blades remaining
+
+layout(set = 2, binding = 0) readonly buffer InputGrass {
+    Blade inputBlades[]; 
+} inputBlades;
+
+layout(set = 2, binding = 1) writeonly buffer CulledGrass {
+    Blade culledBlades[]; 
+} culledBlades; 
+
+layout(set = 2, binding = 2) buffer NumBlades {
+      uint vertexCount;
+ 	  uint instanceCount;
+ 	  uint firstVertex;   
+ 	  uint firstInstance; 
+} numBlades; 
 
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
@@ -43,7 +58,10 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+		numBlades.vertexCount = 0;
+        numBlades.instanceCount = 1;
+        numBlades.firstVertex = 0; 
+        numBlades.firstInstance = 0; 
 	}
 	barrier(); // Wait till all threads reach this point
 
@@ -53,4 +71,7 @@ void main() {
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+
+    uint index = atomicAdd(numBlades.vertexCount, 1); 
+    culledBlades.culledBlades[index] = inputBlades.inputBlades[gl_GlobalInvocationID.x]; 
 }

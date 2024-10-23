@@ -159,7 +159,11 @@ int main() {
     delete blades;
     delete camera;
     delete renderer;
+
+    // this base code SUCKS
     delete swapChain;
+    vkDestroySurfaceKHR(instance->GetVkInstance(), surface, nullptr);
+
     delete device;
     delete instance;
     DestroyWindow();
