@@ -21,6 +21,18 @@ layout(location = 3) out vec4 up_out;
 layout(location = 4) out float u_out; 
 layout(location = 5) out float v_out; 
 
+mat4 rot(vec3 axis, float angle)
+{
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+    
+    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+                0.0,                                0.0,                                0.0,                                1.0);
+}
 
 void main() {
     float u = gl_TessCoord.x;
@@ -29,6 +41,8 @@ void main() {
     u_out = u; 
     v_out = v; 
 
-	// TODO: Use u and v to parameterize along the grass blade and output positions for each vertex of the grass blade
-    gl_Position = camera.proj * camera.view * (gl_in[0].gl_Position + vec4(0.3 * (1.0 - v) * (.5 - u), v, 0.0, 0.0));
+    mat4 rotation = rot(vec3(0, 1, 0), v0_in[0].w); 
+    vec4 pos = gl_in[0].gl_Position + rotation * vec4(0.3 * (1.0 - v) * (.5 - u), v, 0.0, 0.0);
+
+    gl_Position = camera.proj * camera.view * pos; 
 }

@@ -30,10 +30,10 @@ void main() {
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
 	// TODO: Write any shader outputs
-    vec4 v0_out = v0_in[0];
-    vec4 v1_out = v1_in[0];
-    vec4 v2_out = v2_in[0];
-    vec4 up_out = up_in[0];
+    v0_out[gl_InvocationID] = v0_in[gl_InvocationID];
+    v1_out[gl_InvocationID] = v1_in[gl_InvocationID];
+    v2_out[gl_InvocationID] = v2_in[gl_InvocationID];
+    up_out[gl_InvocationID] = up_in[gl_InvocationID];
 
 	// TODO: Set level of tesselation
     // gl_TessLevelInner[0] = ???

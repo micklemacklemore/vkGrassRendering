@@ -17,7 +17,6 @@ layout(location = 5) in float v;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    // TODO: Compute fragment color
     // Define the dark green and light green colors
     vec3 darkGreen = vec3(0.0, 0.5, 0.0);  // Dark green
     vec3 lightGreen = vec3(0.5, 1.0, 0.5); // Light green
