@@ -12,7 +12,7 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(set = 1, binding = 0) uniform Time {
     float deltaTime;
     float totalTime;
-};
+} time;
 
 struct Blade {
     vec4 v0;
@@ -50,6 +50,19 @@ bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
 }
 
+mat4 rot(vec3 axis, float angle)
+{
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+    
+    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+                0.0,                                0.0,                                0.0,                                1.0);
+}
+
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
@@ -60,13 +73,43 @@ void main() {
 	}
 	barrier(); // Wait till all threads reach this point
 
+    uint index = atomicAdd(numBlades.vertexCount, 1); 
+    Blade b = inputBlades.inputBlades[gl_GlobalInvocationID.x]; 
+
     // TODO: Apply forces on every blade and update the vertices in the buffer
+
+    // gravity
+
+    // gravity magnitude/direction
+    vec4 D = vec4(0, -1, 0, 1);
+
+    mat4 rotation = rot(vec3(0, 1, 0), b.v0.w);
+    vec3 f = (rotation * vec4(0, 0, 1, 0)).xyz; 
+
+    vec3 gEnvironment = normalize(D.xyz) * D.w;   // global gravity force
+    vec3 gFront = 0.25f * length(gEnvironment) * f;  
+
+    vec3 gravity = gEnvironment + gFront; 
+
+    // recovery 
+    float stiffness = b.up.w; 
+    vec3 iv2 = b.v0.xyz + (b.up.xyz * b.v1.w); // initial position of v2
+    vec3 recovery = (iv2 - b.v2.xyz) * stiffness; 
+
+    // wind
+    float wind;
+    
+    // correct position
+
+
+    b.v2.xyz += (gravity + recovery) * time.deltaTime;
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
 
-    uint index = atomicAdd(numBlades.vertexCount, 1); 
-    culledBlades.culledBlades[index] = inputBlades.inputBlades[gl_GlobalInvocationID.x]; 
+    
+
+    culledBlades.culledBlades[index] = b; 
 }

@@ -7,12 +7,7 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 } camera;
 
 // TODO: Declare fragment shader inputs
-layout(location = 0) in vec4 v0_in;
-layout(location = 1) in vec4 v1_in;
-layout(location = 2) in vec4 v2_in;
-layout(location = 3) in vec4 up_in;
-layout(location = 4) in float u; 
-layout(location = 5) in float v; 
+layout(location = 0) in float v; 
 
 layout(location = 0) out vec4 outColor;
 

@@ -1033,6 +1033,8 @@ void Renderer::RecordComputeCommandBuffer() {
         vkCmdDispatch(computeCommandBuffer, NUM_BLADES / WORKGROUP_SIZE, 1, 1); 
     }
 
+    vkCmdPipelineBarrier(computeCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
+
     // ~ End recording ~
     if (vkEndCommandBuffer(computeCommandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("Failed to record compute command buffer");
@@ -1079,19 +1081,19 @@ void Renderer::RecordCommandBuffers() {
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
-        std::vector<VkBufferMemoryBarrier> barriers(scene->GetBlades().size());
+        // ?? It doesn't seem like any of these sync barriers do ANYTHING to fix the grass flickering
+
+        // 1. vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
+
+        // 2. 
+        /*std::vector<VkMemoryBarrier> barriers(scene->GetBlades().size());
         for (uint32_t j = 0; j < barriers.size(); ++j) {
-            barriers[j].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+            barriers[j].sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
             barriers[j].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
             barriers[j].dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
-            barriers[j].srcQueueFamilyIndex = device->GetQueueIndex(QueueFlags::Compute);
-            barriers[j].dstQueueFamilyIndex = device->GetQueueIndex(QueueFlags::Graphics);
-            barriers[j].buffer = scene->GetBlades()[j]->GetNumBladesBuffer();
-            barriers[j].offset = 0;
-            barriers[j].size = sizeof(BladeDrawIndirect);
         }
 
-        vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 0, nullptr, barriers.size(), barriers.data(), 0, nullptr);
+        vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, barriers.size(), barriers.data(), 0, nullptr, 0, nullptr);*/
 
         // Bind the camera descriptor set. This is set 0 in all pipelines so it will be inherited
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
