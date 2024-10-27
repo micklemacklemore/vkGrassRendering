@@ -40,7 +40,7 @@ void main() {
     float width = v2_in[0].w; 
     float height = v1_in[0].w; 
 
-    mat4 rotation = rot(vec3(0, 1, 0), v0_in[0].w);
+    mat4 rotation = rot(up_in[0].xyz, v0_in[0].w);
     vec3 t1 = (rotation * vec4(1, 0, 0, 0)).xyz;
     vec3 a = v0 + v * (v1 - v0); 
     vec3 b = v1 + v * (v2 - v1); 

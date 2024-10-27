@@ -12,7 +12,7 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(set = 1, binding = 0) uniform Time {
     float deltaTime;
     float totalTime;
-} time;
+};
 
 struct Blade {
     vec4 v0;
@@ -83,7 +83,7 @@ void main() {
     // gravity magnitude/direction
     vec4 D = vec4(0, -1, 0, 1);
 
-    mat4 rotation = rot(vec3(0, 1, 0), b.v0.w);
+    mat4 rotation = rot(b.up.xyz, b.v0.w);
     vec3 f = (rotation * vec4(0, 0, 1, 0)).xyz; 
 
     vec3 gEnvironment = normalize(D.xyz) * D.w;   // global gravity force
@@ -97,19 +97,17 @@ void main() {
     vec3 recovery = (iv2 - b.v2.xyz) * stiffness; 
 
     // wind
-    float wind;
+    vec3 wind =  300. * sin(b.v0.x + vec3(totalTime)) * cos(b.v0.z + vec3(totalTime)) * sin(b.v1.w + vec3(totalTime)); 
     
     // correct position
 
-
-    b.v2.xyz += (gravity + recovery) * time.deltaTime;
+    // Not sure why delta time doesn't work, but using deltaTime makes stuttering movement
+    b.v2.xyz += (gravity + recovery + wind) * 0.001;
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
-
-    
 
     culledBlades.culledBlades[index] = b; 
 }
