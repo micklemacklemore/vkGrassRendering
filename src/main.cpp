@@ -116,7 +116,7 @@ int main() {
         grassImageMemory
     );
 
-    float planeDim = 15.f;
+    float planeDim = 30.f;
     float halfWidth = planeDim * 0.5f;
     Model* plane = new Model(device, transferCommandPool,
         {
@@ -159,7 +159,11 @@ int main() {
     delete blades;
     delete camera;
     delete renderer;
+
+    // this base code SUCKS
     delete swapChain;
+    vkDestroySurfaceKHR(instance->GetVkInstance(), surface, nullptr);
+
     delete device;
     delete instance;
     DestroyWindow();

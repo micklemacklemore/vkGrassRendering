@@ -7,11 +7,17 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 } camera;
 
 // TODO: Declare fragment shader inputs
+layout(location = 0) in float v; 
 
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    // TODO: Compute fragment color
+    // Define the dark green and light green colors
+    vec3 darkGreen = vec3(0.0, 0.5, 0.0);  // Dark green
+    vec3 lightGreen = vec3(0.5, 1.0, 0.5); // Light green
 
-    outColor = vec4(1.0);
+    // Interpolate the grass color between darkGreen and lightGreen
+    vec3 grassColor = mix(darkGreen, lightGreen, v);
+
+    outColor = vec4(grassColor, 1.);
 }
