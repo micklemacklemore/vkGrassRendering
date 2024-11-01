@@ -77,8 +77,32 @@ bool inFrustum(vec3 p) {
     return vx && vy && vz; 
 }
 
+float hash( in ivec2 p )  // this hash is not production ready, please
+{                         // replace this by something better
+    // 2D -> 1D
+    int n = p.x*3 + p.y*113;
+    // 1D hash by Hugo Elias
+	n = (n << 13) ^ n;
+    n = n * (n * n * 15731 + 789221) + 1376312589;
+    return -1.0+2.0*float( n & 0x0fffffff)/float(0x0fffffff);
+}
 
-#define HACK true
+float noise( in vec2 p )
+{
+    ivec2 i = ivec2(floor( p ));
+    vec2 f = fract( p );
+	
+    // cubic interpolant
+    vec2 u = f*f*(3.0-2.0*f);
+
+    return mix( mix( hash( i + ivec2(0,0) ), 
+                     hash( i + ivec2(1,0) ), u.x),
+                mix( hash( i + ivec2(0,1) ), 
+                     hash( i + ivec2(1,1) ), u.x), u.y);
+}
+
+
+#define HACK false
 #define CULL true
 
 void main() {
@@ -111,7 +135,7 @@ void main() {
     vec3 f = (rotation * vec4(0, 0, 1, 0)).xyz;
 
     // gravity magnitude/direction
-    vec4 D = vec4(0, -1, 0, 1);
+    vec4 D = vec4(0, -0.1, 0, 1);
     vec3 gEnvironment = normalize(D.xyz) * D.w;   // global gravity force
     vec3 gFront = 0.25f * length(gEnvironment) * f;  
 
@@ -119,28 +143,41 @@ void main() {
 
     // recovery 
     vec3 iv2 = v0 + (up * height); // initial position of v2
-    vec3 recovery = (iv2 - width) * stiffness; 
+    vec3 recovery = (iv2 - v2) * stiffness; 
 
     // wind
-    vec3 wind =  300. * sin(v0.x + vec3(totalTime)) * cos(v0.z + vec3(totalTime)) * sin(height + vec3(totalTime)); 
+    float n = noise(v0.xz); 
+    vec3 windDir = 4. * sin(n + vec3(totalTime)) * cos(n + vec3(totalTime)); 
+    float fd = 1 - length(dot(normalize(windDir), normalize(v2 - v0)));
+    float fr = dot((v2 - v0), up) / height;
+    vec3 wind = windDir * (fd * fr);
     
     // correct position
 
     // Not sure why delta time doesn't work, but using deltaTime makes stuttering movement
-    //
     if (HACK) {
         b.v2.xyz += (gravity + recovery + wind) * 0.001;
     }
-    else 
-    {
-        inputBlades[gl_GlobalInvocationID.x].v2.xyz += (gravity + recovery + wind) * 0.000001;
-    }
-    
+    else {
+        //v2 += (gravity + recovery + wind) * deltaTime; 
+        v2 += (gravity + recovery + wind) * deltaTime; 
 
-	// TODO: Cull blades that are too far away or not in the camera frustum and write them
-	// to the culled blades buffer
-	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
-	// You want to write the visible blades to the buffer without write conflicts between threads
+        v2 = v2 - up * min(dot(up, (v2 - v0)), 0.); 
+        float lproj = length(v2 - v0 - up * dot((v2 - v0), up));
+        v1 = v0 + height * up * max(1. - (lproj / height), 0.05 * max(lproj / height, 1)); 
+
+        float L0 = distance(v2, v0);
+        float L1 = distance(v1, v0) + distance(v2, v1);
+        float L = 0.25 * (2 * L0 + 2 * L1);  
+        float r = height/L;
+
+        v1 = v0 + r * (v1 - v0); 
+        v2 = v1 + r * (v2 - v1); 
+        
+        inputBlades[gl_GlobalInvocationID.x].v1.xyz = v1;
+        inputBlades[gl_GlobalInvocationID.x].v2.xyz = v2;
+
+    }
 
     // -- Culling --
 
