@@ -38,17 +38,18 @@ The implementation is based on [Responsive Real-Time Grass Rendering for General
 
 ## Performance Analysis
 
+*Lower is Better*
 
-```
-## README
+![No Culling, Orientation, Frustum and Distance](https://github.com/user-attachments/assets/5de8f739-49cc-4c7d-829b-6b7c59614f9d)
 
-* A brief description of the project and the specific features you implemented.
-* GIFs of your project in its different stages with the different features being added incrementally.
-* A performance analysis (described below).
+The graph above represents the effect of different culling methods for rendering grass in Vulkan. We measured miliseconds per frame against number of grass blades. 
 
-### Performance Analysis
+Culling by Orientation: this represents the culling occurs when grass blades (which are infinitely flat) are perpendicular to the camera. In the shader, we cull those grass blades within a certain threshold of 90 degrees
 
-The performance analysis is where you will investigate how...
-* Your renderer handles varying numbers of grass blades
-* The improvement you get by culling using each of the three culling tests
-```
+Culling by Frustum: This represents culling that occurs when grass blades are outside of the camera frustum. In the shader we cull those blades. 
+
+Culling by distance: This represents culling grass blades that are of a certain distance. After 10 units, every 10th blade is culled. After 40 units, every 2nd blade is culled and after 50 units, all blades are culled. 
+
+Without any culling, rendering times increase sharply with blade count, reaching 178.32 milliseconds at 4,194,304 blades. Orientation Culling, which removes blades perpendicular to the camera, provides moderate improvement, reducing the time to 123.23 milliseconds at the highest count. Frustum Culling, which discards blades outside the camera's view, achieves a similar but slightly less effective reduction to 156.2 milliseconds. Distance Culling, however, proves to be the most impactful, reducing the frame time to 75.89 milliseconds by progressively removing distant blades, especially effective in large fields where far-off details contribute minimally to visual quality.
+
+While distance culling appears to be the winner here, be mindful that the tests done are dependant on the camera's position and orientation to the grass. It's likely more tests are needed to accurately measure performance of culling. 
