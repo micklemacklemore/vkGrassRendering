@@ -21,13 +21,13 @@ struct Blade {
     vec4 up;
 };
 
-layout(set = 2, binding = 0) readonly buffer InputGrass {
+layout(set = 2, binding = 0) buffer InputGrass {
     Blade inputBlades[]; 
-} inputBlades;
+};
 
 layout(set = 2, binding = 1) writeonly buffer CulledGrass {
     Blade culledBlades[]; 
-} culledBlades; 
+}; 
 
 layout(set = 2, binding = 2) buffer NumBlades {
       uint vertexCount;
@@ -63,6 +63,24 @@ mat4 rot(vec3 axis, float angle)
                 0.0,                                0.0,                                0.0,                                1.0);
 }
 
+#define TOLERANCE -0.0
+
+bool inFrustum(vec3 p) {
+    vec4 pHom = vec4(p, 1); // homogenous form
+    vec4 pNor = camera.proj * camera.view * pHom; 
+    float h = pNor.w + TOLERANCE; 
+
+    bool vx = p.x > -h && p.x < h; 
+    bool vy = p.y > -h && p.y < h; 
+    bool vz = p.z > -h && p.z < h; 
+
+    return vx && vy && vz; 
+}
+
+
+#define HACK true
+#define CULL true
+
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
@@ -73,41 +91,102 @@ void main() {
 	}
 	barrier(); // Wait till all threads reach this point
 
-    uint index = atomicAdd(numBlades.vertexCount, 1); 
-    Blade b = inputBlades.inputBlades[gl_GlobalInvocationID.x]; 
+    Blade b = inputBlades[gl_GlobalInvocationID.x]; 
+
+    vec3 v0 = b.v0.xyz; 
+    vec3 v1 = b.v1.xyz; 
+    vec3 v2 = b.v2.xyz; 
+    vec3 up = b.up.xyz; 
+    float orientation = b.v0.w; 
+    float height = b.v1.w; 
+    float width = b.v2.w; 
+    float stiffness = b.up.w; 
+
 
     // TODO: Apply forces on every blade and update the vertices in the buffer
 
     // gravity
 
+    mat4 rotation = rot(up, orientation);
+    vec3 f = (rotation * vec4(0, 0, 1, 0)).xyz;
+
     // gravity magnitude/direction
     vec4 D = vec4(0, -1, 0, 1);
-
-    mat4 rotation = rot(b.up.xyz, b.v0.w);
-    vec3 f = (rotation * vec4(0, 0, 1, 0)).xyz; 
-
     vec3 gEnvironment = normalize(D.xyz) * D.w;   // global gravity force
     vec3 gFront = 0.25f * length(gEnvironment) * f;  
 
     vec3 gravity = gEnvironment + gFront; 
 
     // recovery 
-    float stiffness = b.up.w; 
-    vec3 iv2 = b.v0.xyz + (b.up.xyz * b.v1.w); // initial position of v2
-    vec3 recovery = (iv2 - b.v2.xyz) * stiffness; 
+    vec3 iv2 = v0 + (up * height); // initial position of v2
+    vec3 recovery = (iv2 - width) * stiffness; 
 
     // wind
-    vec3 wind =  300. * sin(b.v0.x + vec3(totalTime)) * cos(b.v0.z + vec3(totalTime)) * sin(b.v1.w + vec3(totalTime)); 
+    vec3 wind =  300. * sin(v0.x + vec3(totalTime)) * cos(v0.z + vec3(totalTime)) * sin(height + vec3(totalTime)); 
     
     // correct position
 
     // Not sure why delta time doesn't work, but using deltaTime makes stuttering movement
-    b.v2.xyz += (gravity + recovery + wind) * 0.001;
+    //
+    if (HACK) {
+        b.v2.xyz += (gravity + recovery + wind) * 0.001;
+    }
+    else 
+    {
+        inputBlades[gl_GlobalInvocationID.x].v2.xyz += (gravity + recovery + wind) * 0.000001;
+    }
+    
 
 	// TODO: Cull blades that are too far away or not in the camera frustum and write them
 	// to the culled blades buffer
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
 
-    culledBlades.culledBlades[index] = b; 
+    // -- Culling --
+
+    if (CULL)
+    {
+        // -- cull based on blade orientation (in relation to camera) --
+        vec3 cameraPos = (inverse(camera.view) * vec4(0, 0, 0, 1)).xyz; 
+
+        // project camera direction onto grass plane
+        // direction and distance to camera
+        vec3 dirCamera = v0 - cameraPos - up * dot(v0 - cameraPos, up); 
+        vec3 dirBlade = normalize((rotation * vec4(1, 0, 0, 0)).xyz);  // direction of blade along it's width 
+
+        if (0.9 < abs(dot(normalize(dirCamera), dirBlade))) {
+            return; 
+        }
+
+        // -- cull based on the camera's frustum  --
+
+        // approximate mid point of grass blade
+        vec3 m = .25 * v0 * .5 * v1 * .25 * v2;
+        
+        if (!inFrustum(v0) && !inFrustum(m) && !inFrustum(v1)) {
+            return; 
+        }
+
+        // --cull based on distance --
+
+        if (length(dirCamera) > 50.0) {
+            return; 
+        }
+        else if (length(dirCamera) > 40.0 && gl_GlobalInvocationID.x % 2 == 0) {
+            return; 
+        }
+        else if (length(dirCamera) > 10.0 && gl_GlobalInvocationID.x % 10 == 0) {
+            return; 
+        }
+
+    }
+
+    uint index = atomicAdd(numBlades.vertexCount, 1); 
+    if (HACK) {
+        culledBlades[index] = b; 
+    }
+    else
+    {
+        culledBlades[index] = inputBlades[gl_GlobalInvocationID.x]; 
+    }
 }

@@ -51,8 +51,6 @@ void main() {
     // vec3 t0 = normalize(b - a); 
     // vec3 n = normalize(cross(t0, t1)); 
 
-    //vec4 pos = gl_in[0].gl_Position + rotation * vec4(0.3 * (1.0 - v) * (.5 - u), v, 0.0, 0.0);
-
     float t = u - u * v * v; 
     vec3 pos = (1. - t) * c0 + t * c1; 
 
